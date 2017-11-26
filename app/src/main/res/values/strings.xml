@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">HKShare</string>
+
+    <string name="hkshare_notification_title_template">HkShare: %1$s</string>
+
+    <!-- TODO: remove this placeholder text -->
+    <string name="hkshare_notification_placeholder_text_template">Http://%1$s
+    </string>
+
+    <string name="action_share">Share</string>
+    <string name="action_stop">Stop</string>
+
+
+    <style name="Transparent" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:activityOpenEnterAnimation">@android:anim/fade_in</item>
+        <item name="android:activityCloseEnterAnimation">@android:anim/fade_in</item>
+        <item name="android:activityOpenExitAnimation">@android:anim/fade_out</item>
+        <item name="android:activityCloseExitAnimation">@android:anim/fade_out</item>
+
+    </style>
+</resources>

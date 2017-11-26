@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_show_ftpserver_qr"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:padding="@android:dimen/app_icon_size"
+    android:background="#50000000"
+
+    tools:context="org.kreal.hkshare.QRActivity">
+
+    <ImageView
+        android:id="@+id/QRimage"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:minHeight="200dp"
+        android:minWidth="200dp"
+        android:src="@drawable/example_picture" />
+</FrameLayout>
