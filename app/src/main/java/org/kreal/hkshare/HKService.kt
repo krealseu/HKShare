@@ -33,7 +33,7 @@ class HKService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val act = intent?.action
+        val act = intent?.action  ?: return Service.START_NOT_STICKY
         when {
             act.equals(ACTION_START) -> {
                 if (!nettyShare.isAlive()) {
