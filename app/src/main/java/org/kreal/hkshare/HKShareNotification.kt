@@ -100,11 +100,11 @@ object HKShareNotification {
 
                 // Set the pending intent to be initiated when the user touches
                 // the notification.
-                .setContentIntent(
-                        PendingIntent.getActivity(
-                                context,
-                                0,
-                                QRActivity.intent(context, text), PendingIntent.FLAG_UPDATE_CURRENT))
+//                .setContentIntent(
+//                        PendingIntent.getActivity(
+//                                context,
+//                                0,
+//                                QRActivity.intent(context,text), PendingIntent.FLAG_UPDATE_CURRENT))
 
                 // Example additional actions for this notification. These will
                 // only show on devices running Android 4.1 or later, so you
@@ -119,7 +119,6 @@ object HKShareNotification {
                 // Automatically dismiss the notification when it is touched.
                 .setAutoCancel(false)
                 .setOngoing(true)
-
         notify(context, builder.build())
     }
 

@@ -1,9 +1,9 @@
 package org.kreal.hkshare.crash
 
 
-/**
- * Created by lthee on 2017/10/14.
- */
+///**
+// * Created by lthee on 2017/10/14.
+// */
 //HttpServerRequestCallback { request, response ->
 //    val file = NativeHttpFile(File("/sdcard/123.mp4"), "/file")
 //    if (!file.isFile) {
@@ -15,7 +15,7 @@ package org.kreal.hkshare.crash
 //    val reponseStatus: NanoHTTPD.Response.Status
 //    // deal with ETag
 //    val IfNoneMatch = requestHeader?.get("If-None-Match".toLowerCase())
-//    val fileETage = file.etag
+//    val fileETage = file.eTag
 //    responseHeader.put("ETag", fileETage)
 //    if (IfNoneMatch != null) {
 //        if (IfNoneMatch.contentEquals(fileETage)) {
@@ -56,7 +56,7 @@ package org.kreal.hkshare.crash
 //        //对是否正规进行判断
 //        if (!isstandard) {
 //            response.code(416)
-//            response.headers.add("Content-Type", file.getmimetype())
+//            response.headers.add("Content-Type", file.getMimeType())
 //            return@HttpServerRequestCallback
 //        }
 //        //deal with If Match
@@ -64,7 +64,7 @@ package org.kreal.hkshare.crash
 //        if (ifMatch != null) {
 //            if (!ifMatch!!.matches(fileETage.toRegex())) {
 //                response.code(412)
-//                response.headers.add("Content-Type", file.getmimetype())
+//                response.headers.add("Content-Type", file.getMimeType())
 //                return@HttpServerRequestCallback
 //            }
 //        }
@@ -89,7 +89,7 @@ package org.kreal.hkshare.crash
 //
 //    //deal heard
 //    responseHeader.put("Accept-Ranges", "bytes")
-//    responseHeader.put("Content-Type", file.getmimetype())
+//    responseHeader.put("Content-Type", file.getMimeType())
 //    val date = SimpleDateFormat()
 //    responseHeader.put("Last-Modified", file.lastModified().toString())
 //
@@ -106,6 +106,6 @@ package org.kreal.hkshare.crash
 ////            response.sendStream(inputstream,file.length())
 ////
 ////            response.onCompleted(Exception())
-////            val response = HKHttpServive.HKResponse(reponseStatus, file.getmimetype(), inputstream, pos[1] - pos[0] + 1L)
+////            val response = HKHttpServive.HKResponse(reponseStatus, file.getMimeType(), inputstream, pos[1] - pos[0] + 1L)
 //
 //}

@@ -7,11 +7,10 @@ import io.netty.channel.DefaultFileRegion
 import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.handler.codec.http.*
 import io.netty.handler.stream.ChunkedStream
-import org.kreal.hkshare.nettyShare.HttpFile.FileSystem
-import org.kreal.hkshare.nettyShare.HttpFile.HttpFile
 import org.kreal.hkshare.extensions.getAppico
-import org.kreal.hkshare.extensions.logi
 import org.kreal.hkshare.extensions.sendError
+import org.kreal.hkshare.nettyShare.httpFile.FileSystem
+import org.kreal.hkshare.nettyShare.httpFile.HttpFile
 import java.io.File
 import java.io.UnsupportedEncodingException
 import java.net.URLDecoder
@@ -21,36 +20,29 @@ import java.util.regex.Pattern
 
 /**
  * Created by lthee on 2017/10/28.
+ * 处理文件共享，netty的Handler
  */
 class FileShareHandler : SimpleChannelInboundHandler<FullHttpRequest>() {
-    val ALLOWED_FILE_NAME = Pattern.compile("[A-Za-z0-9][-_A-Za-z0-9\\.]*")
 
     override fun messageReceived(ctx: ChannelHandlerContext, request: FullHttpRequest) {
-        if (!request.decoderResult().isSuccess)
-            return ctx.sendError(HttpResponseStatus.BAD_REQUEST, "BAD_REQUEST")
-        if (request.method() != HttpMethod.GET)
-            return ctx.sendError(HttpResponseStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED")
+        when {
+            !request.decoderResult().isSuccess -> return ctx.sendError(HttpResponseStatus.BAD_REQUEST, "BAD_REQUEST")
+            request.method() != HttpMethod.GET -> return ctx.sendError(HttpResponseStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED")
+        }
         val uri = request.uri()
-        val path: String = sanitizeUri(uri) ?: return ctx.sendError(HttpResponseStatus.FORBIDDEN, "FORBIDDEN")
-
-        logi(path)
-        if (path.indexOf('?') >= 0)
-            return ctx.sendError(HttpResponseStatus.FORBIDDEN, "FORBIDDEN: Won't server ? for security reasons.")
-        if (path.contains("../"))
-            return ctx.sendError(HttpResponseStatus.FORBIDDEN, "FORBIDDEN: Won't server ../ for security reasons.")
+        val path: String = sanitizeUri(uri)
+                ?: return ctx.sendError(HttpResponseStatus.FORBIDDEN, "FORBIDDEN")
+        when {
+            path.indexOf('?') >= 0 -> return ctx.sendError(HttpResponseStatus.FORBIDDEN, "FORBIDDEN: Won't server ? for security reasons.")
+            path.contains("../") -> return ctx.sendError(HttpResponseStatus.FORBIDDEN, "FORBIDDEN: Won't server ../ for security reasons.")
+        }
 
         val file = FileSystem.instance.newHttpFile(path)
-        if (!file.exist())
-            return ctx.sendError(404, "Error 404,resource not fount ..")
-        if (file.isDirectory) {
-            return sendDirectory(ctx, request, file)
-//            return when (uri.endsWith('/')) {
-//                true -> sendDirectory(ctx, request, file)
-//                false -> ctx.sendRedirect(uri + '/')
-//            }
+        when {
+            !file.exist() -> return ctx.sendError(404, "Error 404,resource not fount ..")
+            file.isDirectory -> return sendDirectory(ctx, request, file)
+            file.isFile -> sendFile(ctx, request, file)
         }
-        if (file.isFile)
-            sendFile(ctx, request, file)
     }
 
 
@@ -61,22 +53,18 @@ class FileShareHandler : SimpleChannelInboundHandler<FullHttpRequest>() {
     companion object {
         private val INSECURE_URI = Pattern.compile(".*[<>&\"].*")
         private fun sanitizeUri(uri: String): String? {
-            var path: String
+            val uriPath: String
             try {
-                path = URLDecoder.decode(uri, "UTF-8")
+                uriPath = URLDecoder.decode(uri, "UTF-8")
             } catch (e: UnsupportedEncodingException) {
                 throw Error(e)
             }
-            if (path.isEmpty() || path[0] != '/')
+            if (uriPath.isEmpty())
                 return null
-            path = path.replace('/', File.separatorChar)
-            if (path.contains(File.separator + '.') ||
-                    path.contains('.' + File.separator) ||
-                    path[0] == '.' ||
-                    path[path.length - 1] == '.' ||
-                    INSECURE_URI.matcher(path).matches())
+            val filePath = uriPath.replace('/', File.separatorChar)
+            if (filePath.contains("..${File.separator}") || filePath[0] != '/')
                 return null
-            return path
+            return filePath
         }
 
         private fun sendFile(ctx: ChannelHandlerContext, request: FullHttpRequest, file: HttpFile) {
@@ -92,14 +80,14 @@ class FileShareHandler : SimpleChannelInboundHandler<FullHttpRequest>() {
             response.headers().set(HttpHeaderNames.CONTENT_LENGTH, file.length().toString())
             response.headers().set(HttpHeaderNames.LAST_MODIFIED, gmtFrmt.format(Date(file.lastModified())))
             response.headers().set(HttpHeaderNames.ACCEPT_RANGES, "bytes")
-            response.headers().set(HttpHeaderNames.CONTENT_TYPE, file.getmimetype())
-            response.headers()[HttpHeaderNames.ETAG] = file.etag
+            response.headers().set(HttpHeaderNames.CONTENT_TYPE, file.getMimeType())
+            response.headers()[HttpHeaderNames.ETAG] = file.eTag
             response.headers()[HttpHeaderNames.CONNECTION] = request.headers()[HttpHeaderNames.CONNECTION]
 
 
             val ifNoneMatch = request.headers().get(HttpHeaderNames.IF_NONE_MATCH)
             if (ifNoneMatch != null) {
-                if (ifNoneMatch == file.etag) {
+                if (ifNoneMatch == file.eTag) {
                     response.setStatus(HttpResponseStatus.NOT_MODIFIED)
                     ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE)
                     return
@@ -145,7 +133,7 @@ class FileShareHandler : SimpleChannelInboundHandler<FullHttpRequest>() {
                 //deal with If Match
                 val ifMatch = request.headers().get(HttpHeaderNames.IF_MATCH)
                 if (ifMatch != null) {
-                    if (ifMatch != file.etag) {
+                    if (ifMatch != file.eTag) {
                         response.setStatus(HttpResponseStatus.PRECONDITION_FAILED)
                         ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE)
                     }
@@ -153,7 +141,7 @@ class FileShareHandler : SimpleChannelInboundHandler<FullHttpRequest>() {
                 //detail with if Range
                 val ifRange = request.headers().get(HttpHeaderNames.IF_RANGE)
                 if (ifRange != null) {
-                    if (ifRange != file.etag) {
+                    if (ifRange != file.eTag) {
                         pos[0] = 0
                         pos[1] = fSize - 1L
                     }
@@ -179,16 +167,16 @@ class FileShareHandler : SimpleChannelInboundHandler<FullHttpRequest>() {
 
         private fun sendDirectory(ctx: ChannelHandlerContext, request: FullHttpRequest, file: HttpFile) {
             val html = Unpooled.wrappedBuffer(listDirectory(file).toByteArray())
-            val gmtFrmt = SimpleDateFormat("E, d MMM yyyy HH:mm:ss 'GMT'", Locale.US)
+            val gmtFmt = SimpleDateFormat("E, d MMM yyyy HH:mm:ss 'GMT'", Locale.US)
             val response = DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
-            response.headers().set(HttpHeaderNames.DATE, gmtFrmt.format(Date()))
+            response.headers().set(HttpHeaderNames.DATE, gmtFmt.format(Date()))
             response.headers().set(HttpHeaderNames.CONTENT_LENGTH, html.readableBytes().toString())
             response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/html; charset=utf-8")
-            response.headers().set(HttpHeaderNames.ETAG, file.etag)
+            response.headers().set(HttpHeaderNames.ETAG, file.eTag)
             response.headers()[HttpHeaderNames.CONNECTION] = request.headers()[HttpHeaderNames.CONNECTION]
             val ifNoneMatch = request.headers().get(HttpHeaderNames.IF_NONE_MATCH)
             if (ifNoneMatch != null) {
-                if (ifNoneMatch == file.etag) {
+                if (ifNoneMatch == file.eTag) {
                     response.setStatus(HttpResponseStatus.NOT_MODIFIED)
                     html.release()
                     ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE)
@@ -243,7 +231,7 @@ class FileShareHandler : SimpleChannelInboundHandler<FullHttpRequest>() {
             }
             val gmtFrmt = SimpleDateFormat("MMM d,yyyy,HH:mm:ss", Locale.US)
             gmtFrmt.timeZone = TimeZone.getTimeZone("GTM+8")
-            for (f in file.listfile()) {
+            for (f in file.listFiles()) {
                 if (f.isDirectory) {
                     htmlBuilder.append(itemDiv(f.uri, "/assets/appico/folder.png", f.name, "Directory", gmtFrmt.format(Date(f.lastModified()))))
                 } else if (f.isFile) {

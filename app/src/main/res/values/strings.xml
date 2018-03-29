@@ -9,6 +9,12 @@
 
     <string name="action_share">Share</string>
     <string name="action_stop">Stop</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
+    <string name="rout_info_file">file</string>
+    <string name="rout_info_rout">rout</string>
+    <string name="rout_info_title">Rout Info</string>
 
 
     <style name="Transparent" parent="Theme.AppCompat.NoActionBar">

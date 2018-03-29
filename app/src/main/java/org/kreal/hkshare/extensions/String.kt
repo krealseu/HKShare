@@ -2,6 +2,7 @@ package org.kreal.hkshare.extensions
 
 /**
  * Created by lthee on 2017/10/15.
+ *
  */
 fun String.getMimeType(): String {
     val dot = this.lastIndexOf('.')
@@ -17,8 +18,8 @@ fun String.getAppico(): String {
     val ico = this.substring(dot + 1).toLowerCase()
     return "/assets/appico/" + when (ico) {
         "mp3", "mp4", "mkv", "apk", "ass", "doc", "docx", "exe", "html", "xml", "pdf", "ppt", "ppts", "txt", "xls", "xls", "zip", "torrent"
-            , "rar", "iso", "ini", "bin", "7z"-> ico + ".png"
-        else -> "Unknow.png"
+            , "rar", "iso", "ini", "bin", "7z"-> "$ico.png"
+        else -> "Unknown.png"
     }
 }
 

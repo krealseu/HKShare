@@ -28,8 +28,7 @@
 
         <service
             android:name=".HKService"
-            android:enabled="true"
-            android:exported="true" />
+            android:enabled="true" />
         <service
             android:name=".QuickSettingService"
             android:enabled="true"
@@ -46,11 +45,6 @@
             android:name=".PermissionsRequestActivity"
             android:noHistory="true"
             android:theme="@style/Transparent" />
-        <activity android:name=".QRActivity"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen"
-            android:noHistory="true"
-            android:excludeFromRecents="true"
-            android:launchMode="singleInstance"/>
     </application>
 
 </manifest>

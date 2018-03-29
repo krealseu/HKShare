@@ -24,13 +24,10 @@ abstract class Resource {
 
     abstract fun doGet(session: NanoHTTPD.IHTTPSession): Response
 
-    fun doPost(session: NanoHTTPD.IHTTPSession): Response {
-        return doGet(session)
-    }
+    fun doPost(session: NanoHTTPD.IHTTPSession): Response = doGet(session)
 
-    fun dealNullSession(): Response {
-        return NanoHTTPD.newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME_PLAINTEXT, "Error")
-    }
+    private fun dealNullSession(): Response =
+            NanoHTTPD.newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME_PLAINTEXT, "Error")
 
     companion object {
         fun serverfile(session: IHTTPSession?, file: HttpFile): Response {
@@ -108,7 +105,7 @@ abstract class Resource {
 
             //deal heard
             responseHeader.put("Accept-Ranges", "bytes")
-//                    responseHeader.put("Content-Type", file.getmimetype())
+//                    responseHeader.put("Content-Type", file.getMimeType())
             val dateformat = SimpleDateFormat("E, d MMM yyyy HH:mm:ss 'GMT'", Locale.US)
             dateformat.timeZone = TimeZone.getTimeZone("GMT")
             val date = dateformat.format(Date(file.lastModified()))

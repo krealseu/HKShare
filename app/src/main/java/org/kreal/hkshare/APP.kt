@@ -1,18 +1,16 @@
 package org.kreal.hkshare
 
 import android.app.Application
-import android.content.Intent
-import android.preference.PreferenceManager
 import com.squareup.leakcanary.LeakCanary
 
 /**
  * Created by lthee on 2017/10/13.
+ * 应用启动前加载 部件
  */
 class APP : Application() {
-    val USE_LEAK_CANARY = true
     override fun onCreate() {
         super.onCreate()
-        if (USE_LEAK_CANARY) {
+        if (BuildConfig.DEBUG) {
             if (LeakCanary.isInAnalyzerProcess(this)) {
                 return
             }

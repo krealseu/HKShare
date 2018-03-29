@@ -21,7 +21,7 @@ infix fun Context.checkService(name: String): Boolean {
     ))
     val m = manager.runningAppProcesses
     for (v in m) {
-        Log.i("ssll", v.toString())
+        Log.i("Service", v.toString())
     }
     return runService == null
 }
