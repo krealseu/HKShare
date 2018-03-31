@@ -1,15 +1,16 @@
 package org.kreal.hkshare.nettyShare.httpFile
 
-import android.webkit.MimeTypeMap
 import java.io.*
 import java.nio.channels.FileChannel
 import java.util.*
 
 class NativeHttpFile(private val file: File, httpPath: String) : HttpFile {
+    override val isReadable: Boolean = file.canRead()
+
     override val channel: FileChannel
         get() = FileInputStream(file).channel
 
-    override val uri: String = httpPath.replace("/+".toRegex(), "/")
+    override val uri: String = httpPath//.replace("/+".toRegex(), "/")
 
     override val isFile: Boolean = file.exists() && file.isFile
 
@@ -29,7 +30,7 @@ class NativeHttpFile(private val file: File, httpPath: String) : HttpFile {
             else f1.name.compareTo(f2.name, ignoreCase = true)
         })
         return Array(files.size) { i ->
-            NativeHttpFile(files[i], "$uri/${files[i].name}")
+            NativeHttpFile(files[i], "$uri${files[i].name}")
         }
     }
 
@@ -55,17 +56,6 @@ class NativeHttpFile(private val file: File, httpPath: String) : HttpFile {
 
     override fun exist(): Boolean = this.file.exists()
 
-    private fun getTypeForName(name: String): String {
-        val lastDot = name.lastIndexOf('.')
-        if (lastDot >= 0) {
-            val extension = name.substring(lastDot + 1).toLowerCase()
-            val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
-            if (mime != null) {
-                return mime
-            }
-        }
-        return "application/octet-stream"
-    }
 /*
     private fun isPhoto(name: String): Boolean {
         return if (name.matches("(bmp|jpg|jpeg|png|gif)$".toRegex()))

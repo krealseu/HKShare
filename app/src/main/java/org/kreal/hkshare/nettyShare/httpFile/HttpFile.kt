@@ -10,17 +10,18 @@ import java.nio.channels.FileChannel
  */
 
 interface HttpFile {
-    val isFile: Boolean
-    val eTag: String
-    val name: String
-    val isDirectory: Boolean
-    val uri: String
-    val channel: FileChannel?
     fun exist(): Boolean
-    fun listFiles(): Array<HttpFile>
-    @Throws(IOException::class)
-    fun getInputStream(pos: Long): InputStream
-    fun getMimeType(): String
+    val isFile: Boolean
+    val isDirectory: Boolean
+    val isReadable: Boolean
     fun length(): Long
     fun lastModified(): Long
+    val eTag: String
+    val name: String
+    val uri: String
+    fun getMimeType(): String
+    fun listFiles(): Array<HttpFile>
+    val channel: FileChannel?
+    @Throws(IOException::class)
+    fun getInputStream(pos: Long): InputStream
 }

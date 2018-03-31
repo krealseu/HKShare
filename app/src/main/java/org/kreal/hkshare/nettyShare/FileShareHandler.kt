@@ -9,14 +9,13 @@ import io.netty.handler.codec.http.*
 import io.netty.handler.stream.ChunkedStream
 import org.kreal.hkshare.extensions.getAppico
 import org.kreal.hkshare.extensions.sendError
-import org.kreal.hkshare.nettyShare.httpFile.FileSystem
+import org.kreal.hkshare.extensions.sendRedirect
+import org.kreal.hkshare.nettyShare.httpFile.HttpFileSystem
 import org.kreal.hkshare.nettyShare.httpFile.HttpFile
-import java.io.File
 import java.io.UnsupportedEncodingException
 import java.net.URLDecoder
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.regex.Pattern
 
 /**
  * Created by lthee on 2017/10/28.
@@ -30,17 +29,23 @@ class FileShareHandler : SimpleChannelInboundHandler<FullHttpRequest>() {
             request.method() != HttpMethod.GET -> return ctx.sendError(HttpResponseStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED")
         }
         val uri = request.uri()
-        val path: String = sanitizeUri(uri)
-                ?: return ctx.sendError(HttpResponseStatus.FORBIDDEN, "FORBIDDEN")
+        val path: String = try {
+            URLDecoder.decode(uri, "UTF-8")
+        } catch (e: UnsupportedEncodingException) {
+            return ctx.sendError(HttpResponseStatus.FORBIDDEN, "FORBIDDEN: $e")
+        }
+
         when {
             path.indexOf('?') >= 0 -> return ctx.sendError(HttpResponseStatus.FORBIDDEN, "FORBIDDEN: Won't server ? for security reasons.")
             path.contains("../") -> return ctx.sendError(HttpResponseStatus.FORBIDDEN, "FORBIDDEN: Won't server ../ for security reasons.")
+            path.contains(illegalChar) -> return ctx.sendError(HttpResponseStatus.FORBIDDEN, "FORBIDDEN: Uri path contain illegal char ")
         }
 
-        val file = FileSystem.instance.newHttpFile(path)
+        val file = HttpFileSystem.instance.newHttpFile(path)
         when {
             !file.exist() -> return ctx.sendError(404, "Error 404,resource not fount ..")
-            file.isDirectory -> return sendDirectory(ctx, request, file)
+            file.isDirectory ->
+                if (path.endsWith('/')) return sendDirectory(ctx, request, file) else ctx.sendRedirect("$uri/")
             file.isFile -> sendFile(ctx, request, file)
         }
     }
@@ -51,38 +56,19 @@ class FileShareHandler : SimpleChannelInboundHandler<FullHttpRequest>() {
     }
 
     companion object {
-        private val INSECURE_URI = Pattern.compile(".*[<>&\"].*")
-        private fun sanitizeUri(uri: String): String? {
-            val uriPath: String
-            try {
-                uriPath = URLDecoder.decode(uri, "UTF-8")
-            } catch (e: UnsupportedEncodingException) {
-                throw Error(e)
-            }
-            if (uriPath.isEmpty())
-                return null
-            val filePath = uriPath.replace('/', File.separatorChar)
-            if (filePath.contains("..${File.separator}") || filePath[0] != '/')
-                return null
-            return filePath
-        }
+        private val illegalChar = "[*<>|?\"\\\\]".toRegex()
+        private val gmtFormat = SimpleDateFormat("E, d MMM yyyy HH:mm:ss 'GMT'", Locale.SIMPLIFIED_CHINESE)
 
         private fun sendFile(ctx: ChannelHandlerContext, request: FullHttpRequest, file: HttpFile) {
-            val gmtFrmt = SimpleDateFormat("E, d MMM yyyy HH:mm:ss 'GMT'", Locale.US)
             val response = DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
-//            if (!file.isFile) {
-//                response.setStatus(HttpResponseStatus.NOT_FOUND)
-//                ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE)
-//                return
-//            }
-            response.headers().set(HttpHeaderNames.DATE, gmtFrmt.format(Date()))
-//        response.headers().set(HttpHeaderNames.AGE, 600.toString())
-            response.headers().set(HttpHeaderNames.CONTENT_LENGTH, file.length().toString())
-            response.headers().set(HttpHeaderNames.LAST_MODIFIED, gmtFrmt.format(Date(file.lastModified())))
-            response.headers().set(HttpHeaderNames.ACCEPT_RANGES, "bytes")
-            response.headers().set(HttpHeaderNames.CONTENT_TYPE, file.getMimeType())
-            response.headers()[HttpHeaderNames.ETAG] = file.eTag
-            response.headers()[HttpHeaderNames.CONNECTION] = request.headers()[HttpHeaderNames.CONNECTION]
+            response.headers().set(HttpHeaderNames.DATE, gmtFormat.format(Date()))
+//                    .set(HttpHeaderNames.AGE, 600.toString())
+                    .set(HttpHeaderNames.CONTENT_LENGTH, file.length().toString())
+                    .set(HttpHeaderNames.LAST_MODIFIED, gmtFormat.format(Date(file.lastModified())))
+                    .set(HttpHeaderNames.ACCEPT_RANGES, "bytes")
+                    .set(HttpHeaderNames.CONTENT_TYPE, file.getMimeType())
+                    .set(HttpHeaderNames.ETAG, file.eTag)
+                    .set(HttpHeaderNames.CONNECTION, request.headers()[HttpHeaderNames.CONNECTION])
 
 
             val ifNoneMatch = request.headers().get(HttpHeaderNames.IF_NONE_MATCH)
@@ -170,10 +156,10 @@ class FileShareHandler : SimpleChannelInboundHandler<FullHttpRequest>() {
             val gmtFmt = SimpleDateFormat("E, d MMM yyyy HH:mm:ss 'GMT'", Locale.US)
             val response = DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
             response.headers().set(HttpHeaderNames.DATE, gmtFmt.format(Date()))
-            response.headers().set(HttpHeaderNames.CONTENT_LENGTH, html.readableBytes().toString())
-            response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/html; charset=utf-8")
-            response.headers().set(HttpHeaderNames.ETAG, file.eTag)
-            response.headers()[HttpHeaderNames.CONNECTION] = request.headers()[HttpHeaderNames.CONNECTION]
+                    .set(HttpHeaderNames.CONTENT_LENGTH, html.readableBytes().toString())
+                    .set(HttpHeaderNames.CONTENT_TYPE, "text/html; charset=utf-8")
+                    .set(HttpHeaderNames.ETAG, file.eTag)
+                    .set(HttpHeaderNames.CONNECTION, request.headers()[HttpHeaderNames.CONNECTION])
             val ifNoneMatch = request.headers().get(HttpHeaderNames.IF_NONE_MATCH)
             if (ifNoneMatch != null) {
                 if (ifNoneMatch == file.eTag) {
@@ -192,63 +178,61 @@ class FileShareHandler : SimpleChannelInboundHandler<FullHttpRequest>() {
 
         private fun itemDiv(uri: String, image: String, title: String, size: String, date: String): String {
             return """
-<div class="item">
-<img src="$image"/>
-<a href="$uri">
-<div class="title">$title</div>
-<div class="size">$size</div>
-<div class="date">$date</div>
-<div class="line"></div>
-</a>
-</div>
-            """
+                <div class="item">
+                <img src="$image"/>
+                <a href="$uri">
+                <div class="title">$title</div>
+                <div class="size">$size</div>
+                <div class="date">$date</div>
+                <div class="line"></div>
+                </a>
+                </div>
+            """.trimIndent()
         }
 
         private fun listDirectory(file: HttpFile): String {
             val htmlBuilder = StringBuilder()
-            htmlBuilder.append("<html><head>" +
-                    "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />" +
-                    "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>" +
-                    "<link href=\"/assets/appico/home.png\" rel=\"shortcut icon\"/>" +
-                    "<link href=\"/assets/css/itemstyle.css\" rel=\"stylesheet\" type=\"text/css\"/>" +
-                    "<title>" + file.name + "</title>" +
-                    "</head><body><h1>" + file.name + "</h1>")
+            htmlBuilder.append("""
+                <html><head>
+                <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+                <meta name="viewport" content="width=device-width,initial-scale=1"/>
+                <link href="/assets/appico/home.png" rel="shortcut icon"/>
+                <link href="/assets/css/itemstyle.css" rel="stylesheet" type="text/css"/>
+                <title>${file.name}</title>
+                </head><body><h1>${file.name}</h1>
+                """.trimIndent())
             htmlBuilder.append("<div class=\"cc\">")
             var up: String? = null
             var path = file.uri
             if (path.length > 1) {
-                if (path.endsWith('/'))
-                    path = path.substring(0, path.length - 1)
+                path = path.removeSuffix("/")
                 val slash = path.lastIndexOf('/')
                 up = when (slash) {
+                    -1 -> null
                     0 -> "/"
-                    in 1..path.length -> path.substring(0, slash)
-                    else -> null
+                    else -> path.substring(0, slash)
                 }
             }
             if (up != null) {
-                htmlBuilder.append(itemDiv(up, "/assets/appico/back.png", "..", "back", ""))
+                htmlBuilder.append(itemDiv("$up", "/assets/appico/back.png", "..", "back", ""))
             }
-            val gmtFrmt = SimpleDateFormat("MMM d,yyyy,HH:mm:ss", Locale.US)
-            gmtFrmt.timeZone = TimeZone.getTimeZone("GTM+8")
-            for (f in file.listFiles()) {
-                if (f.isDirectory) {
-                    htmlBuilder.append(itemDiv(f.uri, "/assets/appico/folder.png", f.name, "Directory", gmtFrmt.format(Date(f.lastModified()))))
-                } else if (f.isFile) {
-                    val len = f.length()
-                    val size = when (len) {
-                        in 0..1024 -> len.toString() + " bytes"
-                        in 1024..1024 * 1024 -> (len / 1024).toString() + "." + (len % 1024 / 10 % 100) + " KB"
-                        else -> (len / (1024 * 1024)).toString() + "." + (len % (1024 * 1024) / 10 % 100) + " MB"
-                    }
-                    htmlBuilder.append(itemDiv(f.uri, f.name.getAppico(), f.name, size, gmtFrmt.format(Date(f.lastModified()))))
+            file.listFiles().forEach {
+                when {
+                    it.isDirectory -> htmlBuilder.append(itemDiv(it.uri, "/assets/appico/folder.png", it.name, if (it.listFiles().isEmpty()) "Empty" else "${it.listFiles().size} files ", gmtFormat.format(Date(it.lastModified()))))
+                    it.isFile -> htmlBuilder.append(itemDiv(it.uri, it.name.getAppico(), it.name, length2String(it.length()), gmtFormat.format(Date(it.lastModified()))))
                 }
             }
             htmlBuilder.append("""
-</div>
-</body></html>
-            """)
+                </div>
+                </body></html>
+                """.trimIndent())
             return htmlBuilder.toString()
+        }
+
+        private fun length2String(len: Long): String = when (len) {
+            in 0..1024 -> len.toString() + " bytes"
+            in 1024..1024 * 1024 -> (len / 1024).toString() + "." + (len % 1024 / 10 % 100) + " KB"
+            else -> (len / (1024 * 1024)).toString() + "." + (len % (1024 * 1024) / 10 % 100) + " MB"
         }
     }
 }

@@ -9,10 +9,11 @@ import java.nio.channels.FileChannel
  *
  */
 class ApkHttpFile(private val file: File, httpPath: String, label: String? = null) : HttpFile {
+    override val isReadable: Boolean = file.canRead()
     override val channel: FileChannel
         get() = FileInputStream(file).channel
 
-    override val uri: String = httpPath.replace("/+".toRegex(), "/")
+    override val uri: String = httpPath//.replace("/+".toRegex(), "/")
 
     override val isFile: Boolean = file.exists() && file.isFile
 
@@ -38,7 +39,7 @@ class ApkHttpFile(private val file: File, httpPath: String, label: String? = nul
 
     }
 
-    override fun getMimeType(): String = ".apk".getMimeType()
+    override fun getMimeType(): String = getTypeForName("app.apk")
 
     override fun length(): Long = this.file.length()
 

@@ -12,6 +12,7 @@ import java.util.*
  *
  */
 class AssetsHttpFile(private val assetManager: AssetManager, private val filename: String, httpPath: String) : HttpFile {
+    override val isReadable: Boolean = true
 
     override val channel: FileChannel? = null
 
@@ -43,7 +44,7 @@ class AssetsHttpFile(private val assetManager: AssetManager, private val filenam
         return input
     }
 
-    override fun getMimeType(): String = filename.getMimeType()
+    override fun getMimeType(): String = getTypeForName(filename)
 
     override fun length(): Long {
         var result: Int
