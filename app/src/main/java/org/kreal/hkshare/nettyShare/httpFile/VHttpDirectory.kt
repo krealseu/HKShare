@@ -29,6 +29,8 @@ class VHttpDirectory(override val uri: String, override val name: String) : Http
     private val httpFiles: MutableList<HttpFile> = ArrayList()
 
     fun add(httpFile: HttpFile) {
+        val find = httpFiles.find { it.uri == httpFile.uri }
+        httpFiles.remove(find)
         httpFiles.add(httpFile)
     }
 }

@@ -6,6 +6,7 @@ import java.net.SocketException
 
 /**
  * Created by lthee on 2017/11/25.
+ * 获得Ip地址,排除10. 127.等回环ip
  */
 
 val ip: String
@@ -15,7 +16,7 @@ val ip: String
                     .getNetworkInterfaces()) {
                 for (enumIpAddress in enNetI.inetAddresses) {
                     if (enumIpAddress is Inet4Address && !enumIpAddress.isLoopbackAddress()) {
-                        if (enumIpAddress.getHostAddress().startsWith("192"))
+                        if (!enumIpAddress.getHostAddress().contains("^(127.|10.)".toRegex()))
                             return enumIpAddress.getHostAddress()
                     }
                 }
@@ -25,19 +26,3 @@ val ip: String
         }
         return "localhost"
     }
-
-fun ip(): String {
-    try {
-        for (enNetI in NetworkInterface
-                .getNetworkInterfaces()) {
-            for (enumIpAddress in enNetI.inetAddresses) {
-                if (enumIpAddress is Inet4Address && !enumIpAddress.isLoopbackAddress()) {
-                    return enumIpAddress.getHostAddress()
-                }
-            }
-        }
-    } catch (e: SocketException) {
-        e.printStackTrace()
-    }
-    return ""
-}

@@ -8,20 +8,21 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.Binder
+import android.os.Environment
 import android.os.IBinder
 import android.support.v4.app.NotificationCompat
 import org.kreal.hkshare.extensions.ip
-import org.kreal.hkshare.extensions.logi
 import org.kreal.hkshare.nettyShare.HttpService
 import org.kreal.hkshare.nettyShare.httpFile.ApkFileFactory
 import org.kreal.hkshare.nettyShare.httpFile.AssetsFileFactory
-import org.kreal.hkshare.nettyShare.httpFile.FileSystem
+import org.kreal.hkshare.nettyShare.httpFile.HttpFileSystem
 import org.kreal.hkshare.nettyShare.httpFile.NativeFileFactory
+import org.kreal.storage.Storage
 import java.io.File
 
 class HKService : Service() {
-    //    private val nanoShare = HKHttpServive(6533)
-    private val port = 8080
+    private val port = APP.preference.getPort()
+
     private val nettyShare = HttpService(port)
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -29,9 +30,13 @@ class HKService : Service() {
         when (act) {
             ACTION_START -> {
                 if (!nettyShare.isAlive()) {
-                    FileSystem.instance.route("/assets/*", AssetsFileFactory(baseContext.assets, "/assets"))
-                    FileSystem.instance.route("/*", NativeFileFactory("/", File("/storage")))
-                    FileSystem.instance.route("/app/*", ApkFileFactory(baseContext.packageManager, "/app"))
+                    val storage = Storage(baseContext)
+                    storage.getAvailableVolumes().forEach {
+                        HttpFileSystem.instance.route("/${it.uuid}/", NativeFileFactory(File(it.path), "/${it.uuid}/"))
+                    }
+                    HttpFileSystem.instance.route("/Download/", NativeFileFactory(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "/Download/"))
+                    HttpFileSystem.instance.route("/assets/", AssetsFileFactory(baseContext.assets, "/assets/"))
+                    HttpFileSystem.instance.route("/app/", httpFileFactory = ApkFileFactory(baseContext.packageManager, "/app/"))
                     nettyShare.start()
                     startForeground(startId, createNotification(baseContext))
                 }
@@ -58,12 +63,12 @@ class HKService : Service() {
         builder.setContentTitle("Http Sharing - - - - > > > > >")
                 .setContentText(ipString)
                 .setSmallIcon(R.drawable.ic_stat_hkshare)
-//                .setContentIntent(
-//                        PendingIntent.getActivity(
-//                                context,
-//                                0,
-//                                QRActivity.intent(context, ipString), PendingIntent.FLAG_UPDATE_CURRENT)
-//                )
+                .setContentIntent(
+                        PendingIntent.getActivity(
+                                context,
+                                0,
+                                Intent(baseContext, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT)
+                )
                 .addAction(
                         R.drawable.ic_action_stat_reply,
                         "stop",
@@ -100,14 +105,14 @@ class HKService : Service() {
         private var state: Boolean = false
         private var hkServiceBinder: HKService.HKServiceBinder? = null
         fun isServing() = state && hkServiceBinder?.nettyShare?.isAlive() ?: false
+        fun isConnected() = state
+
         override fun onServiceDisconnected(p0: ComponentName?) {
-            logi("Disconnect")
             state = false
             hkServiceBinder = null
         }
 
         override fun onServiceConnected(p0: ComponentName?, binder: IBinder?) {
-            logi("connect")
             if (binder is HKService.HKServiceBinder) {
                 state = true
                 hkServiceBinder = binder

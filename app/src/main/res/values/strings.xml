@@ -15,6 +15,7 @@
     <string name="rout_info_file">file</string>
     <string name="rout_info_rout">rout</string>
     <string name="rout_info_title">Rout Info</string>
+    <string name="show">show address</string>
 
 
     <style name="Transparent" parent="Theme.AppCompat.NoActionBar">

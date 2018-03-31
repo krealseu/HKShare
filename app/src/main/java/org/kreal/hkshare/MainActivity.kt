@@ -1,42 +1,77 @@
 package org.kreal.hkshare
 
+import android.annotation.SuppressLint
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
 import android.support.v7.app.AppCompatActivity
-import android.util.Log
-import com.google.gson.Gson
+import android.view.View
 import kotlinx.android.synthetic.main.activity_main.*
-import org.kreal.hkshare.configure.Configures
-import org.kreal.hkshare.configure.Rout
 import org.kreal.hkshare.extensions.ip
-import org.kreal.hkshare.extensions.logi
+import org.kreal.widget.qrshow.QRShow
 
-
+@SuppressLint("SetTextI18n")
 class MainActivity : AppCompatActivity() {
+    private val serviceConnection: HKService.HKServiceClientBinder = HKService.HKServiceClientBinder()
+    private var isRunningState: Boolean = false
+    private val handler = Handler()
+    private val refreshRunnable: Runnable = object : Runnable {
+        override fun run() {
+            if (serviceConnection.isConnected() && isRunningState != serviceConnection.isServing())
+                updateView()
+            handler.postDelayed(this, 500)
+        }
+    }
+
+    private fun updateView() {
+        if (serviceConnection.isServing()) {
+            isRunningState = true
+            button.text = "Stop"
+            imageView.visibility = View.VISIBLE
+            QRShow(imageView) show "Http://$ip:${APP.preference.getPort()}"
+        } else {
+            isRunningState = false
+            button.text = "Start"
+            imageView.visibility = View.GONE
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        start.setOnClickListener {
-            HKService startWith applicationContext
-        }
-        stop.setOnClickListener {
-            HKService stopWith applicationContext
-        }
-        this logi ip
-        val arr = Array(3) { i: Int ->
-            Rout("sdcard$i", "/sdcard$i", true)
-        }
-        val config = Configures(arr)
-//        val config = Rout("sdcard", "/sdcard", true)
-        val string = Gson().toJson(config, Configures::class.java)
-        val file = getFileStreamPath("data")
-        logi(file.path)
-        file.writeText(string)
-        Log.i("asd", file.readText())
-        val clzc = Rout::class
-        val data = Gson().fromJson(file.readText(), Configures::class.java)
-        Log.i("asd", data.toString())
+        baseContext.bindService(Intent(baseContext, HKService::class.java), serviceConnection, Context.BIND_AUTO_CREATE)
         button.setOnClickListener {
-            RoutDialogFragment().show(fragmentManager,"w")
+            when (serviceConnection.isServing()) {
+                true -> actionStop()
+                false -> actionStart()
+            }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        ip_address.text = "Address:$ip"
+        port.text = "Port:${APP.preference.getPort()}"
+        handler.post(refreshRunnable)
+        updateView()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        handler.removeCallbacks(refreshRunnable)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        baseContext.unbindService(serviceConnection)
+    }
+
+    private fun actionStart() {
+        HKService startWith baseContext
+    }
+
+    private fun actionStop() {
+        HKService stopWith baseContext
     }
 }

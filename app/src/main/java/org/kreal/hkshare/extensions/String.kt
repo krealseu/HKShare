@@ -17,7 +17,7 @@ fun String.getAppico(): String {
     val dot = this.lastIndexOf('.')
     val ico = this.substring(dot + 1).toLowerCase()
     return "/assets/appico/" + when (ico) {
-        "mp3", "mp4", "mkv", "apk", "ass", "doc", "docx", "exe", "html", "xml", "pdf", "ppt", "ppts", "txt", "xls", "xls", "zip", "torrent"
+        "mp3", "mp4", "mkv", "apk", "ass", "doc", "docx", "exe", "html", "xml", "pdf", "ppt", "pptx", "txt", "xls", "xlsx", "zip", "torrent"
             , "rar", "iso", "ini", "bin", "7z"-> "$ico.png"
         else -> "Unknown.png"
     }

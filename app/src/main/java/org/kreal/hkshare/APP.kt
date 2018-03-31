@@ -2,6 +2,7 @@ package org.kreal.hkshare
 
 import android.app.Application
 import com.squareup.leakcanary.LeakCanary
+import org.kreal.hkshare.configure.AppPreference
 
 /**
  * Created by lthee on 2017/10/13.
@@ -16,6 +17,11 @@ class APP : Application() {
             }
             LeakCanary.install(this)
         }
-//        startActivity(Intent(baseContext, PermissionsRequestActivity::class.java))
+        preference = AppPreference(this)
+    }
+
+    companion object {
+        lateinit var preference: AppPreference
+            private set
     }
 }
