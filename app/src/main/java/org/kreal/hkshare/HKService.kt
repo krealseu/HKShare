@@ -59,7 +59,7 @@ class HKService : Service() {
 
     private fun createNotification(context: Context): Notification? {
         val builder = NotificationCompat.Builder(context, "HKShare")
-        val ipString = "Http://$ip:$port"
+        val ipString = "http://$ip:$port"
         builder.setContentTitle("Http Sharing - - - - > > > > >")
                 .setContentText(ipString)
                 .setSmallIcon(R.drawable.ic_stat_hkshare)

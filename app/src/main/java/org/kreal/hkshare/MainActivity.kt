@@ -29,7 +29,7 @@ class MainActivity : AppCompatActivity() {
             isRunningState = true
             button.text = "Stop"
             imageView.visibility = View.VISIBLE
-            QRShow(imageView) show "Http://$ip:${APP.preference.getPort()}"
+            QRShow(imageView) show "http://$ip:${APP.preference.getPort()}"
         } else {
             isRunningState = false
             button.text = "Start"
