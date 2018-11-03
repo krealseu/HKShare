@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/HKShare.iml" filepath="$PROJECT_DIR$/HKShare.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/libftp/libftp.iml" filepath="$PROJECT_DIR$/libftp/libftp.iml" />
     </modules>
   </component>
 </project>

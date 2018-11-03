@@ -51,7 +51,7 @@ dependencies {
     implementation 'com.squareup.leakcanary:leakcanary-android:1.5.4'
     implementation 'io.netty:netty-all:5.0.0.Alpha2'
     implementation 'com.google.code.gson:gson:2.8.0'
-
+    implementation project(':libftp')
 }
 repositories {
     mavenCentral()

@@ -1,13 +1,12 @@
 package org.kreal.hkshare
 
-import android.app.Notification
-import android.app.PendingIntent
-import android.app.Service
+import android.app.*
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.Binder
+import android.os.Build
 import android.os.Environment
 import android.os.IBinder
 import android.support.v4.app.NotificationCompat
@@ -18,6 +17,7 @@ import org.kreal.hkshare.nettyShare.httpFile.AssetsFileFactory
 import org.kreal.hkshare.nettyShare.httpFile.HttpFileSystem
 import org.kreal.hkshare.nettyShare.httpFile.NativeFileFactory
 import org.kreal.storage.Storage
+import org.kreal.widget.qrshow.QRShow
 import java.io.File
 
 class HKService : Service() {
@@ -58,11 +58,24 @@ class HKService : Service() {
     override fun onBind(intent: Intent): IBinder? = HKServiceBinder(nettyShare)
 
     private fun createNotification(context: Context): Notification? {
-        val builder = NotificationCompat.Builder(context, "HKShare")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val chan = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_MIN)
+//            chan.enableLights(true)
+//            chan.enableVibration(false)
+//            chan.vibrationPattern = longArrayOf(0)
+//            chan.lightColor = Color.RED
+            chan.lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            val nm = (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+            nm.createNotificationChannel(chan)
+        }
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
         val ipString = "http://$ip:$port"
-        builder.setContentTitle("Http Sharing - - - - > > > > >")
+        builder.setContentTitle(contentTitle)
                 .setContentText(ipString)
+                .setContentInfo(contentText)
                 .setSmallIcon(R.drawable.ic_stat_hkshare)
+                .setLargeIcon(QRShow().show(ipString).get())
+                .setSubText(contentSub)
                 .setContentIntent(
                         PendingIntent.getActivity(
                                 context,
@@ -73,6 +86,7 @@ class HKService : Service() {
                         R.drawable.ic_action_stat_reply,
                         "stop",
                         PendingIntent.getService(context, 0, HKService.stopIntent(context), PendingIntent.FLAG_CANCEL_CURRENT))
+
         return builder.build()
     }
 
@@ -80,10 +94,22 @@ class HKService : Service() {
         private const val TAG = "HKService"
         private const val ACTION_START = "org.kreal.hkshare.HKService.START"
         private const val ACTION_STOP = "org.kreal.hkshare.HKService.STOP"
+        private const val CHANNEL_ID = "HKSHARE_SERVICE_ID"
+        private const val CHANNEL_NAME = "HK"
+
+        private const val contentSub = "HKShare"
+        private const val contentTitle = "Http Sharing - - - - > > > > >"
+        private const val contentText = "Http Sharing"
+
         infix fun startWith(context: Context) {
             val intent = Intent(context, HKService::class.java)
             intent.action = ACTION_START
             context.startService(intent)
+//            when {
+//                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> context.startForegroundService(intent)
+//                else -> context.startService(intent)
+//            }
+
         }
 
         infix fun stopWith(context: Context) {
